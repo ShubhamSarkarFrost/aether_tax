@@ -4,8 +4,11 @@ import AppLayout from '../components/AppLayout';
 import MetricCard from '../components/MetricCard';
 import JurisdictionTable from '../components/JurisdictionTable';
 import RecentTransactionsTable from '../components/RecentTransactionsTable';
-import { fetchDashboardSummary, DashboardSummary } from '../api/dashboard';
-import { fetchTransactions, Transaction } from '../api/transactions';
+import { fetchDashboardSummary } from '../api/dashboard';
+import type { DashboardSummary } from '../api/dashboard';
+import { fetchTransactions } from '../api/transactions';
+import type { Transaction } from '../api/transactions';
+import { classifyTransaction } from '../api/transactions';
 import { fetchAllExposures } from '../api/exposures';
 
 export default function DashboardPage() {
@@ -35,6 +38,15 @@ export default function DashboardPage() {
   useEffect(() => {
     load();
   }, []);
+
+  async function handleClassify(id: string, status: "classified" | "rejected") {
+    try {
+      await classifyTransaction(id, status);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to classify transaction");
+    }
+  }
 
   return (
     <AppLayout title="Executive Exposure Dashboard">
@@ -103,7 +115,7 @@ export default function DashboardPage() {
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h3 className="text-base font-semibold text-gray-900 mb-4">Recent Transactions</h3>
-            <RecentTransactionsTable transactions={transactions} />
+            <RecentTransactionsTable transactions={transactions} onClassify={handleClassify} />
           </div>
         </div>
       )}

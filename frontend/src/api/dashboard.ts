@@ -1,5 +1,5 @@
+import { buildAuthHeaders } from './auth';
 const BASE_URL = 'http://localhost:5000';
-const DEFAULT_ORG_ID = 'default-org';
 
 export interface JurisdictionBreakdown {
   jurisdiction_id: string;
@@ -15,11 +15,22 @@ export interface DashboardSummary {
   pending_count: number;
   jurisdiction_breakdown: JurisdictionBreakdown[];
   avg_confidence_score: number;
+  total_tax_records: number;
+  filing_status_counts: {
+    filed: number;
+    pending: number;
+    amended: number;
+    unfiled: number;
+    unknown: number;
+  };
+  total_tax_amount: number;
+  total_tax_paid: number;
+  total_outstanding_liability: number;
 }
 
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {
   const res = await fetch(`${BASE_URL}/api/dashboard/summary`, {
-    headers: { 'x-org-id': DEFAULT_ORG_ID },
+    headers: buildAuthHeaders(),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

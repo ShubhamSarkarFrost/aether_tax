@@ -2,7 +2,6 @@ interface Filters {
   taxYear: string;
   entityName: string;
   filingStatus: string;
-  jurisdiction: string;
 }
 
 interface Props {
@@ -48,16 +47,6 @@ export default function TaxRecordsFilters({ filters, onChange, onApply, onReset 
           <option value="amended">Amended</option>
           <option value="unfiled">Unfiled</option>
         </select>
-      </div>
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-oktawave-gray">Jurisdiction</label>
-        <input
-          type="text"
-          placeholder="Jurisdiction"
-          value={filters.jurisdiction}
-          onChange={(e) => onChange({ ...filters, jurisdiction: e.target.value })}
-          className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-oktawave-blue w-40"
-        />
       </div>
       <button
         onClick={onApply}

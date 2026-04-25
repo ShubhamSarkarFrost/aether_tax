@@ -1,21 +1,19 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const jurisdictionRuleSchema = new mongoose.Schema(
   {
-    jurisdiction_id: { type: String, required: true },
-    country_code: { type: String, required: true, minlength: 2, maxlength: 2 },
-    transaction_type: { type: String, required: true },
-    tax_type: {
-      type: String,
-      enum: ['VAT', 'GST', 'corporate_tax', 'WHT'],
-      required: true,
-    },
-    tax_rate: { type: Number, required: true, min: 0, max: 1 },
-    effective_from: { type: Date, required: true },
-    effective_to: { type: Date },
-    is_active: { type: Boolean, default: true },
+    jurisdiction_id: { type: mongoose.Schema.Types.ObjectId, ref: "Jurisdiction", required: true },
+    rule_type: { type: String, required: true, trim: true },
+    tax_category: { type: String, required: true, trim: true },
+    standard_rate: { type: Number, required: true, min: 0 },
+    rule_logic: { type: String, trim: true },
+    valid_from: { type: Date, required: true },
+    valid_to: { type: Date },
+    source_reference: { type: String, trim: true },
+    oecd_framework_tag: { type: String, trim: true },
+    active: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model('JurisdictionRule', jurisdictionRuleSchema);
+module.exports = mongoose.model("JurisdictionRule", jurisdictionRuleSchema);

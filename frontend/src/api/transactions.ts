@@ -1,5 +1,5 @@
+import { buildAuthHeaders, getOrgId } from './auth';
 const BASE_URL = 'http://localhost:5000';
-const DEFAULT_ORG_ID = 'default-org';
 
 export interface Transaction {
   _id: string;
@@ -53,7 +53,7 @@ export async function fetchTransactions(
   if (params.sortOrder) query.set('sortOrder', params.sortOrder);
 
   const res = await fetch(`${BASE_URL}/api/transactions?${query.toString()}`, {
-    headers: { 'x-org-id': DEFAULT_ORG_ID },
+    headers: buildAuthHeaders(),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -64,7 +64,7 @@ export async function fetchTransactions(
 
 export async function fetchTransaction(id: string): Promise<Transaction> {
   const res = await fetch(`${BASE_URL}/api/transactions/${id}`, {
-    headers: { 'x-org-id': DEFAULT_ORG_ID },
+    headers: buildAuthHeaders(),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -78,10 +78,9 @@ export async function createTransaction(payload: TransactionPayload): Promise<Tr
   const res = await fetch(`${BASE_URL}/api/transactions`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'x-org-id': DEFAULT_ORG_ID,
+      ...buildAuthHeaders({ 'Content-Type': 'application/json' }),
     },
-    body: JSON.stringify({ ...payload, org_id: payload.org_id || DEFAULT_ORG_ID }),
+    body: JSON.stringify({ ...payload, org_id: payload.org_id || getOrgId() }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -98,8 +97,7 @@ export async function classifyTransaction(
   const res = await fetch(`${BASE_URL}/api/transactions/${id}/classify`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'x-org-id': DEFAULT_ORG_ID,
+      ...buildAuthHeaders({ 'Content-Type': 'application/json' }),
     },
     body: JSON.stringify({ status }),
   });

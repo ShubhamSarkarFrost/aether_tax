@@ -1,10 +1,12 @@
-import { TaxRecord } from '../api/taxRecords';
+import type { TaxRecord } from '../api/taxRecords';
 
 interface Props {
   records: TaxRecord[];
   sortBy: string;
   sortOrder: 'asc' | 'desc';
   onSort: (column: string) => void;
+  onFilingStatusChange: (id: string, status: NonNullable<TaxRecord['filingStatus']>) => void;
+  updatingStatusId?: string | null;
 }
 
 const columns = [
@@ -39,7 +41,14 @@ function formatCell(key: string, value: unknown): string {
   return String(value);
 }
 
-export default function TaxRecordsTable({ records, sortBy, sortOrder, onSort }: Props) {
+export default function TaxRecordsTable({
+  records,
+  sortBy,
+  sortOrder,
+  onSort,
+  onFilingStatusChange,
+  updatingStatusId,
+}: Props) {
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
       <table className="min-w-full text-sm">
@@ -75,13 +84,24 @@ export default function TaxRecordsTable({ records, sortBy, sortOrder, onSort }: 
                 {columns.map((col) => (
                   <td key={col.key} className="px-4 py-3 whitespace-nowrap">
                     {col.key === 'filingStatus' && record.filingStatus ? (
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      <select
+                        value={record.filingStatus}
+                        onChange={(e) =>
+                          onFilingStatusChange(
+                            record._id,
+                            e.target.value as NonNullable<TaxRecord['filingStatus']>
+                          )
+                        }
+                        disabled={updatingStatusId === record._id}
+                        className={`px-2 py-1 rounded-full text-xs font-medium border ${
                           statusClasses[record.filingStatus] ?? 'bg-gray-100 text-gray-700'
                         }`}
                       >
-                        {record.filingStatus}
-                      </span>
+                        <option value="pending">pending</option>
+                        <option value="filed">filed</option>
+                        <option value="amended">amended</option>
+                        <option value="unfiled">unfiled</option>
+                      </select>
                     ) : (
                       formatCell(col.key, record[col.key as keyof TaxRecord])
                     )}

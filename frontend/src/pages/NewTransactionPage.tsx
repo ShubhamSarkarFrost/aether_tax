@@ -2,7 +2,8 @@ import { useState } from 'react';
 import AppLayout from '../components/AppLayout';
 import ExposureResultModal from '../components/ExposureResultModal';
 import { createTransaction } from '../api/transactions';
-import { calculateExposure, TaxExposure } from '../api/exposures';
+import { calculateExposure } from '../api/exposures';
+import type { TaxExposure } from '../api/exposures';
 
 const COUNTRIES = [
   { code: 'AU', name: 'Australia' },

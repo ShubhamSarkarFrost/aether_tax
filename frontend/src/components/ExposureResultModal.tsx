@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { TaxExposure } from '../api/exposures';
+import type { TaxExposure } from '../api/exposures';
 
 interface Props {
   isOpen: boolean;

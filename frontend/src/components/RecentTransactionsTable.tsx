@@ -1,7 +1,8 @@
-import { Transaction } from '../api/transactions';
+import type { Transaction } from '../api/transactions';
 
 interface Props {
   transactions: Transaction[];
+  onClassify?: (id: string, status: "classified" | "rejected") => void;
 }
 
 const statusStyles: Record<string, string> = {
@@ -10,7 +11,7 @@ const statusStyles: Record<string, string> = {
   rejected: 'bg-red-100 text-red-800',
 };
 
-export default function RecentTransactionsTable({ transactions }: Props) {
+export default function RecentTransactionsTable({ transactions, onClassify }: Props) {
   const recent = transactions.slice(0, 10);
 
   if (recent.length === 0) {
@@ -24,7 +25,7 @@ export default function RecentTransactionsTable({ transactions }: Props) {
       <table className="min-w-full text-sm">
         <thead>
           <tr>
-            {['Type', 'Amount', 'Currency', 'Origin', 'Destination', 'Cross-Border', 'Status'].map(
+            {['Type', 'Amount', 'Currency', 'Origin', 'Destination', 'Cross-Border', 'Status', 'Action'].map(
               (h) => (
                 <th
                   key={h}
@@ -64,6 +65,26 @@ export default function RecentTransactionsTable({ transactions }: Props) {
                 >
                   {tx.classification_status}
                 </span>
+              </td>
+              <td className="px-4 py-3">
+                {tx.classification_status === "pending" ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onClassify?.(tx._id, "classified")}
+                      className="px-2 py-1 rounded text-xs text-white bg-[#dc6900] hover:bg-[#eb8c00]"
+                    >
+                      Classify
+                    </button>
+                    <button
+                      onClick={() => onClassify?.(tx._id, "rejected")}
+                      className="px-2 py-1 rounded text-xs text-white bg-[#602320] hover:opacity-90"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-500">—</span>
+                )}
               </td>
             </tr>
           ))}

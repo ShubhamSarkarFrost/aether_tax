@@ -68,3 +68,36 @@ export async function createTaxRecord(record: Partial<TaxRecord>): Promise<TaxRe
   const json = await res.json();
   return json.data;
 }
+
+export async function uploadTaxRecords(
+  records: Partial<TaxRecord>[]
+): Promise<{ count: number; data: TaxRecord[] }> {
+  const res = await fetch("http://localhost:5000/api/tax-records/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ records }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `Request failed with status ${res.status}`);
+  }
+  const json = await res.json();
+  return { count: json.count, data: json.data };
+}
+
+export async function updateTaxRecordFilingStatus(
+  id: string,
+  filingStatus: NonNullable<TaxRecord['filingStatus']>
+): Promise<TaxRecord> {
+  const res = await fetch(`http://localhost:5000/api/tax-records/${id}/filing-status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filingStatus }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `Request failed with status ${res.status}`);
+  }
+  const json = await res.json();
+  return json.data;
+}

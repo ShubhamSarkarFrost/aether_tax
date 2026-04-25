@@ -4,10 +4,10 @@ const app = require("./app");
 const connectDB = require("./config/db");
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 
 if (!MONGO_URI) {
-  console.error("Missing MONGO_URI in environment variables.");
+  console.error("Missing MONGODB_URI (or MONGO_URI) in environment variables.");
   process.exit(1);
 }
 
