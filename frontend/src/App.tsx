@@ -126,7 +126,7 @@ function TaxRecordsPage() {
       return;
     }
 
-    if (hasManualInput && !hasCompleteManualInput) {
+    if (!uploadFile && hasManualInput && !hasCompleteManualInput) {
       setError('Complete tax year, entity name, and tax amount for manual entry, or upload a file');
       return;
     }
