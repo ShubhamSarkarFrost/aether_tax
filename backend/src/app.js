@@ -9,6 +9,8 @@ const jurisdictionsRouter = require("./routes/jurisdictions.routes");
 const jurisdictionalRulesRouter = require("./routes/jurisdictionalRules.routes");
 const transactionsRouter = require("./routes/transactions");
 const taxExposuresRouter = require("./routes/taxExposures.routes");
+const taxOrchestratorRouter = require("./routes/taxOrchestrator.routes");
+const insightsRouter = require("./routes/insights.routes");
 const dashboardRouter = require("./routes/dashboard");
 const { optionalAuth } = require("./middleware/auth.middleware");
 
@@ -26,6 +28,8 @@ app.use("/api/jurisdictional-rules", jurisdictionalRulesRouter);
 app.use("/api", taxRecordsRouter);
 app.use("/api", optionalAuth, transactionsRouter);
 app.use("/api", optionalAuth, taxExposuresRouter);
+app.use("/api", optionalAuth, taxOrchestratorRouter);
+app.use("/api", insightsRouter);
 app.use("/api", optionalAuth, dashboardRouter);
 
 app.get("/api/health", (req, res) => {

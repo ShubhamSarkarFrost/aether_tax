@@ -1,55 +1,23 @@
-const Transaction = require("../models/Transaction");
-const Jurisdiction = require("../models/Jurisdiction");
-const JurisdictionRule = require("../models/JurisdictionRule");
 const TaxExposure = require("../models/TaxExposure");
+const { runOrchestration } = require("./taxOrchestrator.service");
 const { createServiceError } = require("../utils/serviceError");
 
+/**
+ * Full multi-rule run (GST/VAT/OECD lanes, etc.); prefer this for new code.
+ */
+async function calculateTaxExposuresViaOrchestrator(transactionId, orgId, options) {
+  return runOrchestration(transactionId, orgId, options);
+}
+
+/**
+ * @deprecated For backward compatibility: returns the first created exposure. Prefer calculateTaxExposuresViaOrchestrator or runOrchestration for the full set.
+ */
 async function calculateTaxExposure(transactionId, orgId) {
-  const transaction = await Transaction.findById(transactionId);
-  if (!transaction) {
-    throw createServiceError("Transaction not found", 404);
+  const result = await runOrchestration(transactionId, orgId);
+  if (!result.exposures.length) {
+    throw createServiceError("Orchestration produced no exposures", 500);
   }
-
-  if (orgId && transaction.org_id !== orgId) {
-    throw createServiceError("Access denied", 403);
-  }
-
-  const jurisdiction = await Jurisdiction.findOne({ country_code: transaction.destination_country, active: true }).lean();
-  if (!jurisdiction) {
-    throw createServiceError(`No active jurisdiction found for country ${transaction.destination_country}`, 422);
-  }
-
-  const now = new Date();
-  const rule = await JurisdictionRule.findOne({
-    jurisdiction_id: jurisdiction._id,
-    active: true,
-    valid_from: { $lte: now },
-    $or: [{ valid_to: null }, { valid_to: { $gt: now } }],
-  }).sort({ valid_from: -1 });
-
-  if (!rule) {
-    throw createServiceError(`No active jurisdictional rule found for ${jurisdiction.country_code}`, 422);
-  }
-
-  const taxable_amount = transaction.amount;
-  const tax_rate = rule.standard_rate;
-  const tax_due = taxable_amount * tax_rate;
-
-  const exposure = await TaxExposure.create({
-    transaction_id: transaction._id,
-    org_id: transaction.org_id,
-    jurisdiction_id: jurisdiction._id,
-    rule_id: rule._id,
-    tax_type: rule.tax_category,
-    taxable_amount,
-    tax_rate,
-    tax_due,
-    calculation_basis: "tax_due = taxable_amount * tax_rate",
-    confidence_score: 0.9,
-    calculated_at: new Date(),
-  });
-
-  return exposure;
+  return result.exposures[0];
 }
 
 async function listTaxExposures(orgId) {
@@ -74,6 +42,7 @@ async function listTaxExposuresByTransaction(transactionId, orgId) {
 
 module.exports = {
   calculateTaxExposure,
+  calculateTaxExposuresViaOrchestrator,
   listTaxExposures,
   getTaxExposureById,
   listTaxExposuresByTransaction,

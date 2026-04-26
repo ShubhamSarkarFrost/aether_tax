@@ -3,7 +3,7 @@ import AppLayout from '../components/AppLayout';
 import ExposureResultModal from '../components/ExposureResultModal';
 import { createTransaction } from '../api/transactions';
 import { calculateExposure } from '../api/exposures';
-import type { TaxExposure } from '../api/exposures';
+import type { TaxExposure, TaxOrchestrationResult } from '../api/exposures';
 
 const COUNTRIES = [
   { code: 'AU', name: 'Australia' },
@@ -62,6 +62,7 @@ export default function NewTransactionPage() {
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [exposure, setExposure] = useState<TaxExposure | null>(null);
+  const [orchestration, setOrchestration] = useState<TaxOrchestrationResult | null>(null);
   const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
 
   function validate(): boolean {
@@ -79,8 +80,9 @@ export default function NewTransactionPage() {
     setModalLoading(true);
     setModalError(null);
     try {
-      const result = await calculateExposure(transactionId);
-      setExposure(result);
+      const { primary, orchestration: orch } = await calculateExposure(transactionId);
+      setExposure(primary);
+      setOrchestration(orch);
     } catch (err) {
       setModalError(err instanceof Error ? err.message : 'Exposure calculation failed');
     } finally {
@@ -111,6 +113,7 @@ export default function NewTransactionPage() {
 
       setPendingTransactionId(tx._id);
       setExposure(null);
+      setOrchestration(null);
       setModalOpen(true);
       runCalculation(tx._id);
     } catch (err) {
@@ -288,6 +291,7 @@ export default function NewTransactionPage() {
         loading={modalLoading}
         error={modalError}
         exposure={exposure}
+        orchestration={orchestration}
         onRetry={handleRetry}
       />
     </AppLayout>

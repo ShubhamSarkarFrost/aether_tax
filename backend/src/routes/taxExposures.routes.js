@@ -1,10 +1,10 @@
 const express = require("express");
 const {
-  calculateTaxExposure,
   listTaxExposures,
   getTaxExposureById,
   listTaxExposuresByTransaction,
 } = require("../services/taxExposure.service");
+const { runOrchestration } = require("../services/taxOrchestrator.service");
 const { getOrgIdFromRequest } = require("../utils/orgContext");
 
 const router = express.Router();
@@ -12,8 +12,20 @@ const router = express.Router();
 router.post("/tax-exposures/calculate/:transactionId", async (req, res) => {
   try {
     const orgId = getOrgIdFromRequest(req);
-    const exposure = await calculateTaxExposure(req.params.transactionId, orgId);
-    return res.status(201).json({ success: true, data: exposure });
+    const asOf = req.body?.asOf ? new Date(req.body.asOf) : undefined;
+    const result = await runOrchestration(req.params.transactionId, orgId, { asOf });
+    return res.status(201).json({
+      success: true,
+      data: result.exposures[0] ?? null,
+      meta: {
+        orchestration: {
+          transaction_id: result.transaction_id,
+          summary: result.summary,
+          jurisdiction: result.jurisdiction,
+          exposures: result.exposures,
+        },
+      },
+    });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ success: false, message: error.message });
   }
@@ -23,8 +35,20 @@ router.post("/tax-exposures/calculate/:transactionId", async (req, res) => {
 router.post("/exposures/calculate/:transactionId", async (req, res) => {
   try {
     const orgId = getOrgIdFromRequest(req);
-    const exposure = await calculateTaxExposure(req.params.transactionId, orgId);
-    return res.status(201).json({ success: true, data: exposure });
+    const asOf = req.body?.asOf ? new Date(req.body.asOf) : undefined;
+    const result = await runOrchestration(req.params.transactionId, orgId, { asOf });
+    return res.status(201).json({
+      success: true,
+      data: result.exposures[0] ?? null,
+      meta: {
+        orchestration: {
+          transaction_id: result.transaction_id,
+          summary: result.summary,
+          jurisdiction: result.jurisdiction,
+          exposures: result.exposures,
+        },
+      },
+    });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ success: false, message: error.message });
   }

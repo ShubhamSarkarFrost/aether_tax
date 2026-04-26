@@ -9,6 +9,8 @@ const jurisdictionRuleSchema = new mongoose.Schema(
     rule_logic: { type: String, trim: true },
     valid_from: { type: Date, required: true },
     valid_to: { type: Date },
+    /** When set, only these transaction_type values (see Transaction model) get this rule; when empty, all types match. */
+    applies_to_transaction_types: [{ type: String, trim: true }],
     source_reference: { type: String, trim: true },
     oecd_framework_tag: { type: String, trim: true },
     active: { type: Boolean, default: true },

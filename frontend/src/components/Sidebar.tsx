@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Globe2, Scale, Settings } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Globe2, Scale, UserCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = [
@@ -8,7 +8,7 @@ const navItems = [
   { to: '/tax-records', label: 'Tax Records', icon: FileText },
   { to: '/jurisdictions', label: 'Jurisdictions', icon: Globe2 },
   { to: '/rules', label: 'Rules', icon: Scale },
-  { to: '/profile', label: 'Profile', icon: Settings },
+  { to: '/profile', label: 'Profile', icon: UserCircle },
 ];
 
 export default function Sidebar() {

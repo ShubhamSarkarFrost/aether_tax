@@ -7,6 +7,20 @@ export interface JurisdictionBreakdown {
   count: number;
 }
 
+export interface JurisdictionLabeled {
+  jurisdiction_id: string;
+  country_code?: string;
+  name?: string;
+  tax_due: number;
+  count: number;
+}
+
+export interface ExposureByTaxType {
+  tax_type: string;
+  tax_due: number;
+  count: number;
+}
+
 export interface DashboardSummary {
   total_transactions: number;
   total_exposure: number;
@@ -14,6 +28,9 @@ export interface DashboardSummary {
   classified_count: number;
   pending_count: number;
   jurisdiction_breakdown: JurisdictionBreakdown[];
+  /** When present (newer API), includes ISO country and name for charts. */
+  jurisdiction_labeled?: JurisdictionLabeled[];
+  exposure_by_tax_type?: ExposureByTaxType[];
   avg_confidence_score: number;
   total_tax_records: number;
   filing_status_counts: {

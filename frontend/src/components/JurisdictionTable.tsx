@@ -4,6 +4,8 @@ interface JurisdictionRow {
   jurisdiction_id: string;
   tax_due: number;
   count: number;
+  country_code?: string;
+  name?: string;
 }
 
 interface Props {
@@ -36,7 +38,16 @@ export default function JurisdictionTable({ data }: Props) {
         <tbody>
           {data.map((row, i) => (
             <tr key={row.jurisdiction_id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-              <td className="px-4 py-3 font-medium text-gray-900">{row.jurisdiction_id}</td>
+              <td className="px-4 py-3 font-medium text-gray-900">
+                {row.country_code ? (
+                  <span>
+                    <span className="font-semibold">{row.country_code}</span>
+                    {row.name && <span className="text-gray-500 font-normal"> · {row.name}</span>}
+                  </span>
+                ) : (
+                  row.jurisdiction_id
+                )}
+              </td>
               <td className="px-4 py-3 text-gray-700">{row.count}</td>
               <td className="px-4 py-3 text-gray-700">
                 ${row.tax_due.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

@@ -1,12 +1,16 @@
 import { X } from 'lucide-react';
-import type { TaxExposure } from '../api/exposures';
+import type { TaxExposure, TaxOrchestrationResult } from '../api/exposures';
+import TaxOrchestrator from './TaxOrchestrator';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   loading: boolean;
   error: string | null;
+  /** Primary / first line (optional if orchestration provides rows). */
   exposure: TaxExposure | null;
+  /** Full tax orchestrator run: multiple rules (e.g. GST + WHT) and totals. */
+  orchestration?: TaxOrchestrationResult | null;
   onRetry: () => void;
 }
 
@@ -30,6 +34,7 @@ export default function ExposureResultModal({
   loading,
   error,
   exposure,
+  orchestration,
   onRetry,
 }: Props) {
   if (!isOpen) return null;
@@ -41,9 +46,9 @@ export default function ExposureResultModal({
       aria-modal="true"
     >
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 z-10">
+      <div className="relative bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 z-10 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Exposure Simulation Result</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Tax Orchestrator Result</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition"
@@ -80,7 +85,20 @@ export default function ExposureResultModal({
           </div>
         )}
 
-        {!loading && !error && exposure && (
+        {!loading && !error && orchestration && (
+          <div className="space-y-3">
+            <TaxOrchestrator orchestration={orchestration} />
+            <button
+              onClick={onClose}
+              className="w-full mt-4 py-2 rounded-lg text-sm font-medium text-white transition"
+              style={{ backgroundColor: '#dc6900' }}
+            >
+              Close
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && !orchestration && exposure && (
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Jurisdiction</span>
@@ -105,7 +123,11 @@ export default function ExposureResultModal({
             <div className="flex justify-between text-sm border-t pt-3">
               <span className="font-semibold text-gray-700">Tax Due</span>
               <span className="text-xl font-bold text-gray-900">
-                ${exposure.tax_due.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                $
+                {exposure.tax_due.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </span>
             </div>
             <div className="flex justify-between text-sm items-center">

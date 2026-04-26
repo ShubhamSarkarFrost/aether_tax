@@ -23,7 +23,11 @@ export default function AppHeader({ title }: Props) {
           <Shield size={16} className="opacity-80" />
           <div>
             <p className="text-sm font-medium leading-tight">{user?.full_name || 'Aether Tax'}</p>
-            <p className="text-xs opacity-70 leading-tight">{user?.role || 'Financial Due-Diligence Intelligence Platform'}</p>
+            {user?.email && (
+              <p className="text-xs opacity-70 leading-tight mt-0.5 truncate max-w-[200px] sm:max-w-xs" title={user.email}>
+                {user.email}
+              </p>
+            )}
           </div>
         </div>
         <div>

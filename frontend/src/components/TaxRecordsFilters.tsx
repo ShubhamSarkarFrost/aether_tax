@@ -1,17 +1,21 @@
-interface Filters {
+import type { Jurisdiction } from '../api/jurisdictions';
+
+export interface TaxRecordsFilterState {
   taxYear: string;
   entityName: string;
   filingStatus: string;
+  jurisdictionId: string;
 }
 
 interface Props {
-  filters: Filters;
-  onChange: (filters: Filters) => void;
+  filters: TaxRecordsFilterState;
+  jurisdictions: Jurisdiction[];
+  onChange: (filters: TaxRecordsFilterState) => void;
   onApply: () => void;
   onReset: () => void;
 }
 
-export default function TaxRecordsFilters({ filters, onChange, onApply, onReset }: Props) {
+export default function TaxRecordsFilters({ filters, jurisdictions, onChange, onApply, onReset }: Props) {
   return (
     <div className="flex flex-wrap gap-3 items-end bg-white border border-gray-200 rounded-lg p-4 mb-6">
       <div className="flex flex-col gap-1">
@@ -46,6 +50,21 @@ export default function TaxRecordsFilters({ filters, onChange, onApply, onReset 
           <option value="pending">Pending</option>
           <option value="amended">Amended</option>
           <option value="unfiled">Unfiled</option>
+        </select>
+      </div>
+      <div className="flex flex-col gap-1 min-w-0">
+        <label className="text-xs font-medium text-oktawave-gray">Jurisdiction</label>
+        <select
+          value={filters.jurisdictionId}
+          onChange={(e) => onChange({ ...filters, jurisdictionId: e.target.value })}
+          className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-oktawave-blue w-56 max-w-full"
+        >
+          <option value="">All</option>
+          {jurisdictions.map((j) => (
+            <option key={j._id} value={j._id}>
+              {j.country_code} — {j.name}
+            </option>
+          ))}
         </select>
       </div>
       <button

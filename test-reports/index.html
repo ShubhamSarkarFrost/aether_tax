@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aether Tax — Test reports</title>
+    <style>
+      :root {
+        font-family: system-ui, sans-serif;
+        color: #1a1a1a;
+        background: #f5f5f5;
+      }
+      body {
+        max-width: 42rem;
+        margin: 3rem auto;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+      p {
+        color: #555;
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      li {
+        margin-bottom: 0.75rem;
+      }
+      a {
+        display: inline-block;
+        color: #c60;
+        font-weight: 500;
+        text-decoration: none;
+        padding: 0.5rem 0.75rem;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      a:hover {
+        border-color: #c60;
+      }
+      .hint {
+        margin-top: 2rem;
+        font-size: 0.8rem;
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Test reports</h1>
+    <p>Generated HTML output for the backend (Jest) and frontend (Vitest) suites. Open each link in the browser.</p>
+    <ul>
+      <li><a href="./backend/index.html">Backend — Jest (API &amp; services)</a></li>
+      <li><a href="./frontend/index.html">Frontend — Vitest (UI)</a></li>
+    </ul>
+    <p class="hint">
+      Regenerate with <code>npm run test:html</code> from the project root.
+    </p>
+  </body>
+</html>

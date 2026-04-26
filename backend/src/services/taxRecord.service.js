@@ -1,4 +1,5 @@
 const TaxRecord = require("../models/TaxRecord");
+const Jurisdiction = require("../models/Jurisdiction");
 const { createServiceError } = require("../utils/serviceError");
 
 async function listTaxRecords(query) {
@@ -21,9 +22,13 @@ async function listTaxRecords(query) {
   if (query.jurisdiction) {
     filter.jurisdiction = { $regex: query.jurisdiction, $options: "i" };
   }
+  if (query.jurisdictionId) {
+    filter.jurisdiction_id = query.jurisdictionId;
+  }
 
   const total = await TaxRecord.countDocuments(filter);
   const data = await TaxRecord.find(filter)
+    .populate("jurisdiction_id", "country_code name region_code")
     .sort({ [sortBy]: sortOrder })
     .skip((page - 1) * limit)
     .limit(limit)
@@ -40,12 +45,27 @@ async function listTaxRecords(query) {
   };
 }
 
+function jurisdictionLabelFromDoc(j) {
+  if (!j) return null;
+  return [j.country_code, j.name].filter(Boolean).join(" — ");
+}
+
 async function createTaxRecord(input) {
   const { taxYear, entityName, taxAmount } = input;
   if (!taxYear || !entityName || taxAmount === undefined) {
     throw createServiceError("taxYear, entityName, and taxAmount are required", 400);
   }
-  return TaxRecord.create(input);
+  const doc = { ...input };
+  if (input.jurisdiction_id) {
+    const j = await Jurisdiction.findById(input.jurisdiction_id).lean();
+    if (!j) {
+      throw createServiceError("jurisdiction not found", 400);
+    }
+    doc.jurisdiction = jurisdictionLabelFromDoc(j);
+  } else {
+    delete doc.jurisdiction_id;
+  }
+  return TaxRecord.create(doc);
 }
 
 async function bulkCreateTaxRecords(records) {
@@ -53,25 +73,31 @@ async function bulkCreateTaxRecords(records) {
     throw createServiceError("records must be a non-empty array", 400);
   }
 
-  const normalized = records.map((record, index) => {
-    const taxYear = Number(record.taxYear);
-    const taxAmount = Number(record.taxAmount);
-    const entityName = typeof record.entityName === "string" ? record.entityName.trim() : "";
+  const normalized = await Promise.all(
+    records.map(async (record, index) => {
+      const taxYear = Number(record.taxYear);
+      const taxAmount = Number(record.taxAmount);
+      const entityName = typeof record.entityName === "string" ? record.entityName.trim() : "";
 
-    if (!taxYear || !entityName || Number.isNaN(taxAmount)) {
-      throw createServiceError(
-        `Invalid record at index ${index}. taxYear, entityName, and taxAmount are required`,
-        400
-      );
-    }
+      if (!taxYear || !entityName || Number.isNaN(taxAmount)) {
+        throw createServiceError(
+          `Invalid record at index ${index}. taxYear, entityName, and taxAmount are required`,
+          400
+        );
+      }
 
-    return {
-      ...record,
-      taxYear,
-      taxAmount,
-      entityName,
-    };
-  });
+      const row = { ...record, taxYear, taxAmount, entityName };
+      if (record.jurisdiction_id) {
+        const j = await Jurisdiction.findById(record.jurisdiction_id).lean();
+        if (j) {
+          row.jurisdiction = jurisdictionLabelFromDoc(j);
+        }
+      } else {
+        delete row.jurisdiction_id;
+      }
+      return row;
+    })
+  );
 
   return TaxRecord.insertMany(normalized);
 }

@@ -41,6 +41,17 @@ function formatCell(key: string, value: unknown): string {
   return String(value);
 }
 
+function formatJurisdictionRow(record: TaxRecord): string {
+  const j = record.jurisdiction_id;
+  if (j && typeof j === 'object' && 'country_code' in j) {
+    const ref = j as { country_code: string; name: string; region_code?: string };
+    const r = ref.region_code ? ` (${ref.region_code})` : '';
+    return `${ref.country_code} — ${ref.name}${r}`;
+  }
+  if (record.jurisdiction) return record.jurisdiction;
+  return '—';
+}
+
 export default function TaxRecordsTable({
   records,
   sortBy,
@@ -102,6 +113,8 @@ export default function TaxRecordsTable({
                         <option value="amended">amended</option>
                         <option value="unfiled">unfiled</option>
                       </select>
+                    ) : col.key === 'jurisdiction' ? (
+                      formatJurisdictionRow(record)
                     ) : (
                       formatCell(col.key, record[col.key as keyof TaxRecord])
                     )}

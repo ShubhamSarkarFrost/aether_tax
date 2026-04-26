@@ -7,7 +7,9 @@ import {
   uploadTaxRecords,
 } from './api/taxRecords';
 import type { TaxRecord, PaginationMeta } from './api/taxRecords';
-import TaxRecordsFilters from './components/TaxRecordsFilters';
+import { fetchJurisdictions } from './api/jurisdictions';
+import type { Jurisdiction } from './api/jurisdictions';
+import TaxRecordsFilters, { type TaxRecordsFilterState } from './components/TaxRecordsFilters';
 import TaxRecordsTable from './components/TaxRecordsTable';
 import Pagination from './components/Pagination';
 import AppLayout from './components/AppLayout';
@@ -21,24 +23,20 @@ import RegisterPage from './pages/RegisterPage';
 import RulesPage from './pages/RulesPage';
 import SettingsPage from './pages/SettingsPage';
 
-interface Filters {
-  taxYear: string;
-  entityName: string;
-  filingStatus: string;
-}
-
-const DEFAULT_FILTERS: Filters = {
+const DEFAULT_FILTERS: TaxRecordsFilterState = {
   taxYear: '',
   entityName: '',
   filingStatus: '',
+  jurisdictionId: '',
 };
 
 function TaxRecordsPage() {
   const inputClass =
     'border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#dc6900]';
   const labelClass = 'block text-xs font-medium text-gray-700 mb-1';
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<TaxRecordsFilterState>(DEFAULT_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<TaxRecordsFilterState>(DEFAULT_FILTERS);
+  const [jurisdictions, setJurisdictions] = useState<Jurisdiction[]>([]);
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState('taxYear');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -60,7 +58,7 @@ function TaxRecordsPage() {
     entityName: '',
     taxAmount: '',
     filingStatus: 'pending',
-    jurisdiction: '',
+    jurisdiction_id: '',
   });
 
   const load = useCallback(async () => {
@@ -75,6 +73,7 @@ function TaxRecordsPage() {
         taxYear: appliedFilters.taxYear || undefined,
         entityName: appliedFilters.entityName || undefined,
         filingStatus: appliedFilters.filingStatus || undefined,
+        jurisdictionId: appliedFilters.jurisdictionId || undefined,
       });
       setRecords(result.data);
       setPagination(result.pagination);
@@ -88,6 +87,16 @@ function TaxRecordsPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setJurisdictions(await fetchJurisdictions());
+      } catch {
+        // catalog optional for page shell; list still works
+      }
+    })();
+  }, []);
 
   function handleSort(column: string) {
     if (sortBy === column) {
@@ -140,7 +149,7 @@ function TaxRecordsPage() {
           entityName: createForm.entityName,
           taxAmount: Number(createForm.taxAmount),
           filingStatus: createForm.filingStatus as 'filed' | 'pending' | 'amended' | 'unfiled',
-          jurisdiction: createForm.jurisdiction || undefined,
+          jurisdiction_id: createForm.jurisdiction_id || undefined,
         });
       }
 
@@ -167,7 +176,7 @@ function TaxRecordsPage() {
         entityName: '',
         taxAmount: '',
         filingStatus: 'pending',
-        jurisdiction: '',
+        jurisdiction_id: '',
       });
       setUploadFile(null);
       await load();
@@ -193,6 +202,8 @@ function TaxRecordsPage() {
         taxpaid: 'taxPaid',
         outstandingliability: 'outstandingLiability',
         jurisdiction: 'jurisdiction',
+        jurisdictionid: 'jurisdiction_id',
+        jrid: 'jurisdiction_id',
         filingdate: 'filingDate',
         notes: 'notes',
       };
@@ -259,7 +270,7 @@ function TaxRecordsPage() {
             Either add records manually
           </p>
           <p className="text-xs text-gray-600 mt-1">
-            Tax Year, Entity Name, Tax Amount, Filing Status
+            Tax year, entity, amount, filing status, optional jurisdiction from catalog
           </p>
         </div>
         <div>
@@ -305,6 +316,22 @@ function TaxRecordsPage() {
             <option value="unfiled">unfiled</option>
           </select>
         </div>
+        <div>
+          <label className={labelClass}>Jurisdiction</label>
+          <select
+            className={`w-full ${inputClass}`}
+            value={createForm.jurisdiction_id}
+            onChange={(e) => setCreateForm({ ...createForm, jurisdiction_id: e.target.value })}
+          >
+            <option value="">None (optional)</option>
+            {jurisdictions.map((j) => (
+              <option key={j._id} value={j._id}>
+                {j.country_code} — {j.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-0.5">Same catalog as Jurisdictions and Rules</p>
+        </div>
         <div className="md:col-span-5">
           <p className="text-sm font-semibold text-gray-700">OR</p>
         </div>
@@ -334,6 +361,7 @@ function TaxRecordsPage() {
 
       <TaxRecordsFilters
         filters={filters}
+        jurisdictions={jurisdictions}
         onChange={setFilters}
         onApply={handleApply}
         onReset={handleReset}

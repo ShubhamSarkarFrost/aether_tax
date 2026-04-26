@@ -3,14 +3,13 @@ import { Activity, DollarSign, Globe, TrendingUp } from 'lucide-react';
 import AppLayout from '../components/AppLayout';
 import MetricCard from '../components/MetricCard';
 import JurisdictionTable from '../components/JurisdictionTable';
+import DashboardAnalytics from '../components/DashboardAnalytics';
 import RecentTransactionsTable from '../components/RecentTransactionsTable';
 import { fetchDashboardSummary } from '../api/dashboard';
 import type { DashboardSummary } from '../api/dashboard';
 import { fetchTransactions } from '../api/transactions';
 import type { Transaction } from '../api/transactions';
 import { classifyTransaction } from '../api/transactions';
-import { fetchAllExposures } from '../api/exposures';
-
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -24,7 +23,6 @@ export default function DashboardPage() {
       const [summaryData, txResult] = await Promise.all([
         fetchDashboardSummary(),
         fetchTransactions({ limit: 10, sortBy: 'createdAt', sortOrder: 'desc' }),
-        fetchAllExposures(),
       ]);
       setSummary(summaryData);
       setTransactions(txResult.data);
@@ -106,11 +104,19 @@ export default function DashboardPage() {
             />
           </div>
 
+          <DashboardAnalytics summary={summary} />
+
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h3 className="text-base font-semibold text-gray-900 mb-4">
               Jurisdiction Exposure Distribution
             </h3>
-            <JurisdictionTable data={summary.jurisdiction_breakdown} />
+            <JurisdictionTable
+              data={
+                summary.jurisdiction_labeled && summary.jurisdiction_labeled.length > 0
+                  ? summary.jurisdiction_labeled
+                  : summary.jurisdiction_breakdown
+              }
+            />
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">

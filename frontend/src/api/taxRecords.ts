@@ -1,3 +1,11 @@
+/** Populated from GET /tax-records when jurisdiction_id is set. */
+export type TaxRecordJurisdictionRef = {
+  _id: string;
+  country_code: string;
+  name: string;
+  region_code?: string;
+};
+
 export interface TaxRecord {
   _id: string;
   taxYear: number;
@@ -9,6 +17,9 @@ export interface TaxRecord {
   taxAmount: number;
   taxPaid?: number;
   outstandingLiability?: number;
+  /** ObjectId string when creating; populated object when listing. */
+  jurisdiction_id?: string | TaxRecordJurisdictionRef | null;
+  /** Denormalized label and/or legacy free text. */
   jurisdiction?: string;
   filingDate?: string;
   notes?: string;
@@ -25,6 +36,8 @@ export interface FetchParams {
   entityName?: string;
   filingStatus?: string;
   jurisdiction?: string;
+  /** Filter by catalog jurisdiction id */
+  jurisdictionId?: string;
 }
 
 export interface PaginationMeta {
@@ -46,6 +59,7 @@ export async function fetchTaxRecords(
   if (params.entityName) query.set('entityName', params.entityName);
   if (params.filingStatus) query.set('filingStatus', params.filingStatus);
   if (params.jurisdiction) query.set('jurisdiction', params.jurisdiction);
+  if (params.jurisdictionId) query.set('jurisdictionId', params.jurisdictionId);
 
   const res = await fetch(`http://localhost:5000/api/tax-records?${query.toString()}`);
   if (!res.ok) {
