@@ -2,7 +2,9 @@
 
 A full-stack app for **modeling cross-border and domestic transactions**, **resolving which tax rules apply** by jurisdiction, and **surfacing estimated tax exposure** (VAT, GST, withholding, corporate-style rules, and more) in a single workspace. It helps finance and tax teams **see where obligation may arise**, **work from a shared transaction and rules catalog**, and **track records and filing posture** without replacing professional advice or final returns.
 
-**Stack:** Node.js, Express, Mongoose, MongoDB · React, Vite, Tailwind CSS.
+**Technology stack**
+
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=nodedotjs&logoColor=white)](https://nodejs.org/) [![Express](https://img.shields.io/badge/Express-000000?style=flat&logo=express&logoColor=white)](https://expressjs.com/) [![Mongoose](https://img.shields.io/badge/Mongoose-880000?style=flat&logo=mongoose&logoColor=white)](https://mongoosejs.com/) [![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat&logo=mongodb&logoColor=white)](https://www.mongodb.com/) [![React](https://img.shields.io/badge/React-20232a?style=flat&logo=react&logoColor=61dafb)](https://react.dev/) [![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/) [![Tailwind%20CSS](https://img.shields.io/badge/Tailwind_CSS-0f172a?style=flat&logo=tailwindcss&logoColor=38bdf8)](https://tailwindcss.com/)
 
 ---
 
