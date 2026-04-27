@@ -35,90 +35,963 @@ A full-stack app for **modeling cross-border and domestic transactions**, **reso
 
 ## API endpoints
 
-Base URL (local): `http://localhost:5000` — all API routes below are prefixed with `/api` unless stated.
+Base URL (local): `http://localhost:5000`. Unless noted, responses are JSON with `success: true` on success, or `success: false` and `message` on error.
 
-### Health
+**Org context (transactions, exposures, orchestrator, dashboard):** resolved as `Authorization: Bearer <JWT>` → `req.user.orgId`, else header `x-org-id`, else body field `org_id`. If missing where required, the handler returns **400** with a message like `org_id is required`.
 
-| Method | Path | Notes |
-|--------|------|--------|
-| `GET` | `/api/health` | Returns `{ success, message }` — no auth. |
+**IDs:** Replace `:id` and `:transactionId` with real MongoDB `ObjectId` strings from your data.
 
-### Auth (`/api/auth`)
+**Path aliases (same request/response as the primary route in this section):**
 
-| Method | Path | Auth | Notes |
-|--------|------|------|--------|
-| `POST` | `/api/auth/register` | — | Register organization + first user. |
-| `POST` | `/api/auth/login` | — | Returns token + user payload. |
-| `GET` | `/api/auth/me` | **Bearer JWT** | Current user. |
+| Alias | Primary (see heading below) |
+|--------|----------------------------|
+| `POST /api/exposures/calculate/:transactionId` | `POST /api/tax-exposures/calculate/:transactionId` |
+| `GET /api/exposures` | `GET /api/tax-exposures` |
+| `GET /api/exposures/transaction/:transactionId` | `GET /api/transactions/:transactionId/exposures` |
 
-### Organizations (`/api/organizations`)
+---
 
-| Method | Path | Auth / roles | Notes |
-|--------|------|----------------|--------|
-| `POST` | `/api/organizations/` | JWT, **admin** | Create organization. |
-| `GET` | `/api/organizations/me` | JWT | Current org. |
-| `PATCH` | `/api/organizations/me` | JWT, **admin** or **manager** | Update org. |
+### `GET /api/health`
 
-### Jurisdictions (`/api/jurisdictions`)
+- **Auth:** none  
+- **Request:** no body  
 
-| Method | Path | Auth / roles | Notes |
-|--------|------|----------------|--------|
-| `POST` | `/api/jurisdictions` | JWT, **admin** or **manager** | Create. |
-| `GET` | `/api/jurisdictions` | — | List (catalog). |
-| `GET` | `/api/jurisdictions/:id` | — | Get one. |
-| `PATCH` | `/api/jurisdictions/:id` | JWT, **admin** or **manager** | Update. |
+**Example response (200):**
 
-### Jurisdictional rules (`/api/jurisdictional-rules`)
+```json
+{
+  "success": true,
+  "message": "Backend is running"
+}
+```
 
-| Method | Path | Auth / roles | Notes |
-|--------|------|----------------|--------|
-| `POST` | `/api/jurisdictional-rules` | JWT, **admin** or **manager** | Create rule. |
-| `GET` | `/api/jurisdictional-rules` | — | List. |
-| `GET` | `/api/jurisdictional-rules/:id` | — | Get one. |
-| `PATCH` | `/api/jurisdictional-rules/:id` | JWT, **admin** or **manager** | Update. |
+---
 
-### Tax records
+### `POST /api/auth/register`
 
-| Method | Path | Notes |
-|--------|------|--------|
-| `GET` | `/api/tax-records` | Query: pagination, filters. |
-| `POST` | `/api/tax-records` | Create record. |
-| `POST` | `/api/tax-records/upload` | Body: `records` array — bulk insert. |
-| `PATCH` | `/api/tax-records/:id/filing-status` | Update filing status. |
+- **Auth:** none  
+- **Body (JSON):**
 
-### Transactions (optional auth: JWT decorates `req.user` if present; org often via `x-org-id` or body)
+```json
+{
+  "organization": {
+    "legal_name": "Acme Global Ltd",
+    "entity_type": "corporation",
+    "country_of_incorporation": "US",
+    "tax_identification_number": "12-3456789",
+    "org_tier": "growth"
+  },
+  "user": {
+    "full_name": "Jane Analyst",
+    "email": "jane@example.com",
+    "password": "hunter2secret",
+    "role": "admin"
+  }
+}
+```
 
-| Method | Path | Notes |
-|--------|------|--------|
-| `POST` | `/api/transactions` | Create; requires org context. |
-| `GET` | `/api/transactions` | List with pagination/sort. |
-| `GET` | `/api/transactions/:id` | Get one; **403** if wrong org. |
-| `POST` | `/api/transactions/:id/classify` | Body: `{ "status": "classified" \| "rejected" }`. |
+- `organization.org_tier` optional: `starter` | `growth` | `enterprise`  
+- `user.role` optional: `admin` | `manager` | `analyst` | `viewer` (defaults to `admin`)
 
-### Tax exposures & orchestration (org via JWT / `x-org-id`)
+**Example response (201):**
 
-| Method | Path | Notes |
-|--------|------|--------|
-| `POST` | `/api/tax-exposures/calculate/:transactionId` | Run orchestration; body optional `asOf`. **Alias:** `POST /api/exposures/calculate/:transactionId`. |
-| `GET` | `/api/tax-exposures` | List exposures for org. |
-| `GET` | `/api/tax-exposures/:id` | Get one. |
-| `GET` | `/api/transactions/:transactionId/exposures` | Exposures for a transaction. |
-| `GET` | `/api/exposures/transaction/:transactionId` | **Backward compatible** list. |
-| `GET` | `/api/exposures` | **Backward compatible** list. |
-| `POST` | `/api/tax-orchestrator/run/:transactionId` | Full run; body optional `asOf` (ISO date). |
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": "675a1b2c3d4e5f6789abcdef",
+      "full_name": "Jane Analyst",
+      "email": "jane@example.com",
+      "role": "admin",
+      "org_id": "675a1b2c3d4e5f6789abcde0"
+    },
+    "organization": {
+      "_id": "675a1b2c3d4e5f6789abcde0",
+      "legal_name": "Acme Global Ltd",
+      "entity_type": "corporation",
+      "country_of_incorporation": "US",
+      "org_tier": "growth",
+      "is_active": true,
+      "createdAt": "2026-04-27T12:00:00.000Z",
+      "updatedAt": "2026-04-27T12:00:00.000Z"
+    }
+  }
+}
+```
 
-### Dashboard
+**Errors:** **400** validation; **409** email already in use.
 
-| Method | Path | Notes |
-|--------|------|--------|
-| `GET` | `/api/dashboard/summary` | Aggregated KPIs, exposure by type/jurisdiction, tax record totals. |
+---
 
-### Insights (Gemini — optional; requires API key in env)
+### `POST /api/auth/login`
 
-| Method | Path | Notes |
-|--------|------|--------|
-| `GET` | `/api/insights/tax-rates` | Query: `countries` (comma ISO), optional `asOf`. |
-| `GET` | `/api/insights/suggested-rule-rate` | Query: `country`, `taxCategory`, optional `ruleType`. |
+- **Auth:** none  
+
+**Body (JSON):**
+
+```json
+{
+  "email": "jane@example.com",
+  "password": "hunter2secret"
+}
+```
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": "675a1b2c3d4e5f6789abcdef",
+      "full_name": "Jane Analyst",
+      "email": "jane@example.com",
+      "role": "admin",
+      "org_id": "675a1b2c3d4e5f6789abcde0"
+    }
+  }
+}
+```
+
+**Errors:** **400** validation; **401** invalid credentials.
+
+---
+
+### `GET /api/auth/me`
+
+- **Auth:** `Authorization: Bearer <JWT>`
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "675a1b2c3d4e5f6789abcdef",
+    "full_name": "Jane Analyst",
+    "email": "jane@example.com",
+    "role": "admin",
+    "org_id": "675a1b2c3d4e5f6789abcde0",
+    "is_active": true,
+    "createdAt": "2026-04-27T12:00:00.000Z",
+    "updatedAt": "2026-04-27T12:00:00.000Z"
+  }
+}
+```
+
+**Errors:** **401** missing/invalid token; **404** user not found.
+
+---
+
+### `POST /api/organizations/`
+
+- **Auth:** JWT with role **admin**
+
+**Body (JSON)** — fields match the `Organization` model (see register example); e.g.:
+
+```json
+{
+  "legal_name": "Subsidiary B.V.",
+  "entity_type": "private_limited",
+  "country_of_incorporation": "NL",
+  "tax_identification_number": "NL123456789B01",
+  "org_tier": "enterprise",
+  "is_active": true
+}
+```
+
+**Example response (201):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "675a1b2c3d4e5f6789abcde1",
+    "legal_name": "Subsidiary B.V.",
+    "entity_type": "private_limited",
+    "country_of_incorporation": "NL",
+    "tax_identification_number": "NL123456789B01",
+    "org_tier": "enterprise",
+    "is_active": true,
+    "createdAt": "2026-04-27T12:05:00.000Z",
+    "updatedAt": "2026-04-27T12:05:00.000Z"
+  }
+}
+```
+
+---
+
+### `GET /api/organizations/me`
+
+- **Auth:** JWT (any authenticated user)
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "675a1b2c3d4e5f6789abcde0",
+    "legal_name": "Acme Global Ltd",
+    "entity_type": "corporation",
+    "country_of_incorporation": "US",
+    "org_tier": "growth",
+    "is_active": true
+  }
+}
+```
+
+**Errors:** **404** organization not found.
+
+---
+
+### `PATCH /api/organizations/me`
+
+- **Auth:** JWT; role **admin** or **manager**
+
+**Body (JSON)** — partial update, e.g.:
+
+```json
+{
+  "legal_name": "Acme Global Holdings Ltd",
+  "org_tier": "enterprise"
+}
+```
+
+**Example response (200):** same shape as `GET /api/organizations/me` with updated fields.
+
+---
+
+### `POST /api/jurisdictions`
+
+- **Auth:** JWT; role **admin** or **manager**
+
+**Body (JSON):**
+
+```json
+{
+  "country_code": "in",
+  "region_code": "ka",
+  "name": "Karnataka",
+  "currency": "inr",
+  "tax_authority_name": "Commercial Taxes Department",
+  "active": true
+}
+```
+
+(`country_code`, `region_code`, `currency` are normalized to uppercase by the API.)
+
+**Example response (201):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "675a1b2c3d4e5f6789abcde2",
+    "country_code": "IN",
+    "region_code": "KA",
+    "name": "Karnataka",
+    "currency": "INR",
+    "tax_authority_name": "Commercial Taxes Department",
+    "active": true,
+    "createdAt": "2026-04-27T12:10:00.000Z",
+    "updatedAt": "2026-04-27T12:10:00.000Z"
+  }
+}
+```
+
+---
+
+### `GET /api/jurisdictions`
+
+- **Auth:** none  
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "675a1b2c3d4e5f6789abcde2",
+      "country_code": "IN",
+      "name": "Karnataka",
+      "currency": "INR",
+      "active": true
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/jurisdictions/:id`
+
+- **Auth:** none  
+
+**Example response (200):** `{ "success": true, "data": { ... same document as create ... } }`  
+
+**Errors:** **404** / **500** with `message` if not found.
+
+---
+
+### `PATCH /api/jurisdictions/:id`
+
+- **Auth:** JWT; role **admin** or **manager**
+
+**Body (JSON):**
+
+```json
+{
+  "active": false,
+  "name": "Karnataka (updated)"
+}
+```
+
+**Example response (200):** `{ "success": true, "data": { ... updated jurisdiction ... } }`
+
+---
+
+### `POST /api/jurisdictional-rules`
+
+- **Auth:** JWT; role **admin** or **manager**
+
+**Body (JSON):**
+
+```json
+{
+  "jurisdiction_id": "675a1b2c3d4e5f6789abcde2",
+  "rule_type": "indirect_tax",
+  "tax_category": "GST",
+  "standard_rate": 0.18,
+  "rule_logic": "Standard supply",
+  "valid_from": "2026-01-01T00:00:00.000Z",
+  "valid_to": null,
+  "applies_to_transaction_types": ["sale", "service"],
+  "source_reference": "CGST Act",
+  "active": true
+}
+```
+
+**Example response (201):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "675a1b2c3d4e5f6789abcde3",
+    "jurisdiction_id": "675a1b2c3d4e5f6789abcde2",
+    "rule_type": "indirect_tax",
+    "tax_category": "GST",
+    "standard_rate": 0.18,
+    "valid_from": "2026-01-01T00:00:00.000Z",
+    "valid_to": null,
+    "applies_to_transaction_types": ["sale", "service"],
+    "active": true,
+    "createdAt": "2026-04-27T12:15:00.000Z",
+    "updatedAt": "2026-04-27T12:15:00.000Z"
+  }
+}
+```
+
+---
+
+### `GET /api/jurisdictional-rules`
+
+- **Auth:** none  
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "675a1b2c3d4e5f6789abcde3",
+      "jurisdiction_id": "675a1b2c3d4e5f6789abcde2",
+      "rule_type": "indirect_tax",
+      "tax_category": "GST",
+      "standard_rate": 0.18,
+      "active": true
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/jurisdictional-rules/:id`
+
+- **Auth:** none  
+
+**Example response (200):** `{ "success": true, "data": { ... rule document ... } }`
+
+---
+
+### `PATCH /api/jurisdictional-rules/:id`
+
+- **Auth:** JWT; role **admin** or **manager**
+
+**Body (JSON):**
+
+```json
+{
+  "standard_rate": 0.19,
+  "active": true
+}
+```
+
+**Example response (200):** `{ "success": true, "data": { ... updated rule ... } }`
+
+---
+
+### `GET /api/tax-records`
+
+- **Auth:** none  
+
+**Query (all optional):** `page`, `limit` (max 100, default 20), `sortBy` (default `taxYear`), `sortOrder` (`asc` | `desc`), `taxYear`, `entityName` (regex), `filingStatus` (`filed` | `pending` | `amended` | `unfiled`), `jurisdiction` (regex on text field), `jurisdictionId` (ObjectId)
+
+**Example:** `GET /api/tax-records?page=1&limit=10&sortBy=taxYear&sortOrder=desc&filingStatus=pending`
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "675a1b2c3d4e5f6789abcde4",
+      "taxYear": 2025,
+      "entityName": "Acme US LLC",
+      "filingStatus": "pending",
+      "taxAmount": 150000,
+      "jurisdiction_id": {
+        "_id": "675a1b2c3d4e5f6789abcde2",
+        "country_code": "IN",
+        "name": "Karnataka",
+        "region_code": "KA"
+      },
+      "jurisdiction": "IN — Karnataka"
+    }
+  ],
+  "pagination": {
+    "total": 1,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### `POST /api/tax-records`
+
+- **Auth:** none  
+
+**Body (JSON):** `taxYear`, `entityName`, and `taxAmount` are required; other fields optional.
+
+```json
+{
+  "taxYear": 2025,
+  "entityName": "Acme US LLC",
+  "entityId": "E-1001",
+  "jurisdiction_id": "675a1b2c3d4e5f6789abcde2",
+  "filingStatus": "pending",
+  "totalIncome": 5000000,
+  "taxableIncome": 4500000,
+  "taxAmount": 150000,
+  "taxPaid": 0,
+  "filingDate": "2026-04-15T00:00:00.000Z",
+  "notes": "Q1 estimate"
+}
+```
+
+**Example response (201):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "675a1b2c3d4e5f6789abcde4",
+    "taxYear": 2025,
+    "entityName": "Acme US LLC",
+    "taxAmount": 150000,
+    "filingStatus": "pending",
+    "jurisdiction": "IN — Karnataka",
+    "createdAt": "2026-04-27T12:20:00.000Z",
+    "updatedAt": "2026-04-27T12:20:00.000Z"
+  }
+}
+```
+
+**Errors:** **400** if required fields missing or `jurisdiction_id` not found.
+
+---
+
+### `POST /api/tax-records/upload`
+
+- **Auth:** none  
+
+**Body (JSON):**
+
+```json
+{
+  "records": [
+    {
+      "taxYear": 2024,
+      "entityName": "Acme UK Ltd",
+      "taxAmount": 50000
+    },
+    {
+      "taxYear": 2024,
+      "entityName": "Acme DE GmbH",
+      "entityId": "DE-1",
+      "jurisdiction_id": "675a1b2c3d4e5f6789abcde2",
+      "taxAmount": 120000
+    }
+  ]
+}
+```
+
+**Example response (201):**
+
+```json
+{
+  "success": true,
+  "message": "2 records uploaded",
+  "count": 2,
+  "data": [ { "...": "inserted documents" } ]
+}
+```
+
+**Errors:** **400** if `records` is missing, empty, or any row invalid.
+
+---
+
+### `PATCH /api/tax-records/:id/filing-status`
+
+- **Auth:** none  
+
+**Body (JSON):**
+
+```json
+{
+  "filingStatus": "filed"
+}
+```
+
+Allowed: `filed` | `pending` | `amended` | `unfiled`
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "675a1b2c3d4e5f6789abcde4",
+    "filingStatus": "filed",
+    "updatedAt": "2026-04-27T12:25:00.000Z"
+  }
+}
+```
+
+**Errors:** **400** invalid status; **404** record not found.
+
+---
+
+### `POST /api/transactions`
+
+- **Auth:** optional JWT; **org** required via JWT, `x-org-id`, or `org_id` in body
+
+**Body (JSON):**
+
+```json
+{
+  "org_id": "675a1b2c3d4e5f6789abcde0",
+  "transaction_type": "sale",
+  "amount": 10000,
+  "currency": "USD",
+  "originating_country": "us",
+  "destination_country": "in",
+  "is_intercompany": false,
+  "transaction_date": "2026-04-27T00:00:00.000Z",
+  "notes": "SaaS renewal",
+  "source_system": "manual"
+}
+```
+
+`transaction_type`: `sale` | `purchase` | `service` | `royalty` | `dividend` | `interest`
+
+**Example response (201):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "675a1b2c3d4e5f6789abcde5",
+    "org_id": "675a1b2c3d4e5f6789abcde0",
+    "transaction_type": "sale",
+    "amount": 10000,
+    "currency": "USD",
+    "originating_country": "US",
+    "destination_country": "IN",
+    "is_cross_border": true,
+    "cross_border": true,
+    "is_intercompany": false,
+    "classification_status": "pending",
+    "transaction_date": "2026-04-27T00:00:00.000Z",
+    "createdAt": "2026-04-27T12:30:00.000Z",
+    "updatedAt": "2026-04-27T12:30:00.000Z"
+  }
+}
+```
+
+**Errors:** **400** validation / missing org; field errors from service.
+
+---
+
+### `GET /api/transactions`
+
+- **Auth:** optional JWT; **org** required (same as above)
+
+**Query (optional):** `page`, `limit`, `sortBy` (default `createdAt`), `sortOrder` (`asc` | `desc`)
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "675a1b2c3d4e5f6789abcde5",
+      "org_id": "675a1b2c3d4e5f6789abcde0",
+      "amount": 10000,
+      "classification_status": "pending"
+    }
+  ],
+  "pagination": {
+    "total": 1,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### `GET /api/transactions/:id`
+
+- **Auth:** optional JWT; org must match transaction when `org_id` is present
+
+**Example response (200):** `{ "success": true, "data": { ... transaction ... } }`  
+
+**Errors:** **404** not found; **403** `Access denied` if org context is present and does not match the transaction’s `org_id`.
+
+---
+
+### `POST /api/transactions/:id/classify`
+
+- **Auth:** optional JWT; org must match
+
+**Body (JSON):**
+
+```json
+{
+  "status": "classified"
+}
+```
+
+`status` must be `classified` or `rejected`
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "675a1b2c3d4e5f6789abcde5",
+    "classification_status": "classified",
+    "classified_at": "2026-04-27T12:35:00.000Z"
+  }
+}
+```
+
+**Errors:** **400** invalid `status`; **404**; **403** wrong org.
+
+---
+
+### `POST /api/tax-exposures/calculate/:transactionId`
+
+Same behavior as `POST /api/exposures/calculate/:transactionId` (alias).
+
+- **Auth:** optional JWT; org must match the transaction
+- **Body (optional):**
+
+```json
+{
+  "asOf": "2026-04-27T00:00:00.000Z"
+}
+```
+
+Runs orchestration: finds destination jurisdiction, active rules, inserts `TaxExposure` rows (replacing prior rows for that transaction by default).
+
+**Example response (201):** first persisted exposure in `data`, full detail under `meta.orchestration`.
+
+```json
+{
+  "success": true,
+  "data": {
+    "transaction_id": "675a1b2c3d4e5f6789abcde5",
+    "org_id": "675a1b2c3d4e5f6789abcde0",
+    "jurisdiction_id": "675a1b2c3d4e5f6789abcde2",
+    "rule_id": "675a1b2c3d4e5f6789abcde3",
+    "tax_type": "GST",
+    "taxable_amount": 10000,
+    "tax_rate": 0.18,
+    "tax_due": 1800,
+    "calculation_basis": "tax_due = taxable_amount * tax_rate; asOf=2026-04-27T00:00:00.000Z",
+    "confidence_score": 0.9,
+    "calculated_at": "2026-04-27T12:40:00.000Z"
+  },
+  "meta": {
+    "orchestration": {
+      "transaction_id": "675a1b2c3d4e5f6789abcde5",
+      "summary": {
+        "total_tax_due": 1800,
+        "rule_count": 1,
+        "as_of": "2026-04-27T00:00:00.000Z"
+      },
+      "jurisdiction": {
+        "_id": "675a1b2c3d4e5f6789abcde2",
+        "country_code": "IN"
+      },
+      "exposures": [ { "...": "all created exposure documents" } ]
+    }
+  }
+}
+```
+
+If no exposures are created, `data` may be `null` while `meta` still contains arrays/summary. **Errors:** **404** transaction; **403** org; **422** no active jurisdiction or no matching rules for `asOf`.
+
+---
+
+### `GET /api/tax-exposures`
+
+Same data as `GET /api/exposures` (alias).
+
+- **Auth:** optional JWT; org from JWT / `x-org-id` / body
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "675a1b2c3d4e5f6789abcde6",
+      "transaction_id": "675a1b2c3d4e5f6789abcde5",
+      "org_id": "675a1b2c3d4e5f6789abcde0",
+      "tax_type": "GST",
+      "tax_due": 1800,
+      "confidence_score": 0.9
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/tax-exposures/:id`
+
+- **Auth:** optional JWT; exposure must belong to org
+
+**Example response (200):** `{ "success": true, "data": { ... exposure ... } }`  
+
+**Errors:** **404** / **500** with message if not found or wrong org (service-dependent).
+
+---
+
+### `GET /api/transactions/:transactionId/exposures`
+
+Same as `GET /api/exposures/transaction/:transactionId` (alias).
+
+- **Auth:** optional JWT; org scoping
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "transaction_id": "675a1b2c3d4e5f6789abcde5",
+      "tax_due": 1800
+    }
+  ]
+}
+```
+
+---
+
+### `POST /api/tax-orchestrator/run/:transactionId`
+
+- **Auth:** optional JWT; org must match transaction
+
+**Body (optional):**
+
+```json
+{
+  "asOf": "2026-01-15"
+}
+```
+
+Invalid date string → **400** `{ "success": false, "message": "Invalid asOf date" }`
+
+**Example response (201):** full orchestration payload in `data` (not split like calculate).
+
+```json
+{
+  "success": true,
+  "data": {
+    "transaction_id": "675a1b2c3d4e5f6789abcde5",
+    "jurisdiction": {
+      "_id": "675a1b2c3d4e5f6789abcde2",
+      "country_code": "IN"
+    },
+    "exposures": [ { "tax_due": 1800, "tax_type": "GST" } ],
+    "summary": {
+      "total_tax_due": 1800,
+      "rule_count": 1,
+      "as_of": "2026-01-15T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**Errors:** same family as calculate (**404** / **403** / **422**).
+
+---
+
+### `GET /api/dashboard/summary`
+
+- **Auth:** optional JWT; if JWT / `x-org-id` / `org_id` is set, metrics filter to that org; if omitted, aggregates are global (see `dashboard.service`).
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "total_transactions": 42,
+    "total_exposure": 250000.5,
+    "cross_border_count": 18,
+    "classified_count": 30,
+    "pending_count": 12,
+    "jurisdiction_breakdown": [
+      { "jurisdiction_id": "675a1b2c3d4e5f6789abcde2", "tax_due": 100000, "count": 5 }
+    ],
+    "jurisdiction_labeled": [
+      {
+        "jurisdiction_id": "675a1b2c3d4e5f6789abcde2",
+        "country_code": "IN",
+        "name": "Karnataka",
+        "tax_due": 100000,
+        "count": 5
+      }
+    ],
+    "exposure_by_tax_type": [
+      { "tax_type": "GST", "tax_due": 200000, "count": 8 }
+    ],
+    "avg_confidence_score": 0.85,
+    "total_tax_records": 10,
+    "filing_status_counts": {
+      "filed": 4,
+      "pending": 3,
+      "amended": 1,
+      "unfiled": 2,
+      "unknown": 0
+    },
+    "total_tax_amount": 500000,
+    "total_tax_paid": 400000,
+    "total_outstanding_liability": 100000
+  }
+}
+```
+
+`TaxRecord` currently has no `org_id` in the schema, so `total_tax_records` and filing/tax rollups in code treat org filter as empty — counts may include all records. Exposure/transaction parts respect `org_id` when provided.
+
+---
+
+### `GET /api/insights/tax-rates`
+
+- **Auth:** none  
+- **Requires** `GEMINI_API_KEY` on the server (else **503**)
+
+**Query:** `countries` — required, comma- or semicolon-separated ISO codes, e.g. `US,DE,IN`  
+**Query:** `asOf` — optional date string, e.g. `2026-01-01`
+
+**Example:** `GET /api/insights/tax-rates?countries=US,IN&asOf=2026-01-01`
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "model": "gemini-2.0-flash",
+    "retrievedAt": "2026-04-27T12:45:00.000Z",
+    "disclaimer": "Reference only — verify with a qualified tax advisor and official sources.",
+    "items": [
+      {
+        "countryCode": "US",
+        "taxType": "corporate",
+        "label": "US federal corporate (headline rate)",
+        "ratePercent": 21,
+        "notes": "Illustrative",
+        "sourceHint": "OECD / IRS"
+      }
+    ]
+  }
+}
+```
+
+**Errors:** **400** missing `countries`; **503** no API key; **502** Gemini errors.
+
+---
+
+### `GET /api/insights/suggested-rule-rate`
+
+- **Auth:** none  
+- **Requires** `GEMINI_API_KEY` (**503** if missing)
+
+**Query:** `country` — required, 2-letter ISO, e.g. `IN`  
+**Query:** `taxCategory` — required, e.g. `GST`  
+**Query:** `ruleType` — optional (defaults to `general` server-side)
+
+**Example:** `GET /api/insights/suggested-rule-rate?country=IN&taxCategory=GST&ruleType=indirect_tax`
+
+**Example response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "model": "gemini-2.0-flash",
+    "standardRate": 0.18,
+    "label": "Standard GST in India (illustrative)",
+    "notes": "Verify with official notifications."
+  }
+}
+```
+
+`standardRate` is a decimal for use in `JurisdictionRule.standard_rate` (e.g. `0.18` = 18%).
+
+**Errors:** **400** missing params or invalid `country`; **502**/ **503** as above.
 
 ---
 
