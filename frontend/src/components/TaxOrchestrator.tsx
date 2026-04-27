@@ -1,17 +1,13 @@
 import type { TaxExposure, TaxOrchestrationResult } from '../api/exposures';
 
-function ConfidenceBadge({ score }: { score: number }) {
-  const cls =
-    score >= 0.8
-      ? 'bg-green-100 text-green-700'
-      : score >= 0.5
-        ? 'bg-yellow-100 text-yellow-700'
-        : 'bg-red-100 text-red-700';
-  return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
-      {(score * 100).toFixed(0)}%
-    </span>
-  );
+function computeTaxDue(row: TaxExposure): number {
+  const taxCreditsRebates = row.tax_credits_rebates ?? 0;
+  const surchargeCess = row.surcharge_cess ?? 0;
+  return row.taxable_amount * row.tax_rate - taxCreditsRebates + surchargeCess;
+}
+
+function formatCurrency(value: number) {
+  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 type Props = {
@@ -25,6 +21,7 @@ type Props = {
  */
 export default function TaxOrchestrator({ orchestration, variant = 'list' }: Props) {
   const { jurisdiction, summary, exposures } = orchestration;
+  const principalAmount = exposures[0]?.taxable_amount ?? 0;
 
   if (variant === 'compact' && exposures.length <= 1) {
     const row = exposures[0];
@@ -35,18 +32,26 @@ export default function TaxOrchestrator({ orchestration, variant = 'list' }: Pro
           Jurisdiction <span className="font-semibold text-gray-900">{jurisdiction.country_code}</span>
         </p>
         <div className="flex justify-between">
-          <span className="text-gray-500">Tax type</span>
-          <span className="font-medium text-gray-900">{row.tax_type}</span>
+          <span className="text-gray-500">Principal amount</span>
+          <span className="font-medium text-gray-900">
+            ${formatCurrency(row.taxable_amount)}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-500">Tax</span>
+          <span className="font-medium text-gray-900">{row.tax_type} ({(row.tax_rate * 100).toFixed(2)}%)</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-500">Credits/Rebates</span>
+          <span className="font-medium text-gray-900">${formatCurrency(row.tax_credits_rebates ?? 0)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-500">Surcharge/Cess</span>
+          <span className="font-medium text-gray-900">${formatCurrency(row.surcharge_cess ?? 0)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Tax due</span>
-          <span className="font-bold text-gray-900">
-            $
-            {row.tax_due.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
-        </div>
-        <div className="flex justify-end">
-          <ConfidenceBadge score={row.confidence_score} />
+          <span className="font-bold text-gray-900">${formatCurrency(computeTaxDue(row))}</span>
         </div>
       </div>
     );
@@ -60,6 +65,12 @@ export default function TaxOrchestrator({ orchestration, variant = 'list' }: Pro
           <span className="text-gray-500"> · {summary.rule_count} rules applied</span>
         )}
       </p>
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-500">Principal amount</span>
+        <span className="font-medium text-gray-900">
+          ${formatCurrency(principalAmount)}
+        </span>
+      </div>
       <ul className="space-y-2 border border-gray-100 rounded-lg divide-y divide-gray-100">
         {exposures.map((row) => (
           <ExposureRow key={row._id} row={row} />
@@ -69,10 +80,7 @@ export default function TaxOrchestrator({ orchestration, variant = 'list' }: Pro
         <span className="font-semibold text-gray-700">Total tax due</span>
         <span className="text-xl font-bold text-gray-900">
           $
-          {summary.total_tax_due.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
+          {formatCurrency(summary.total_tax_due)}
         </span>
       </div>
     </div>
@@ -82,15 +90,23 @@ export default function TaxOrchestrator({ orchestration, variant = 'list' }: Pro
 function ExposureRow({ row }: { row: TaxExposure }) {
   return (
     <li className="p-3 text-sm">
-      <div className="flex justify-between font-medium text-gray-900">
-        <span>{row.tax_type}</span>
-        <span>
-          ${row.tax_due.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </span>
+      <div className="flex justify-between text-gray-500">
+        <span>Tax</span>
+        <span className="font-medium text-gray-900">{row.tax_type} ({(row.tax_rate * 100).toFixed(2)}%)</span>
       </div>
-      <div className="flex justify-between text-gray-500 text-xs mt-1">
-        <span>Rate {(row.tax_rate * 100).toFixed(2)}%</span>
-        <ConfidenceBadge score={row.confidence_score} />
+      <div className="flex justify-between text-gray-500 mt-1">
+        <span>Credits/Rebates</span>
+        <span className="font-medium text-gray-900">${formatCurrency(row.tax_credits_rebates ?? 0)}</span>
+      </div>
+      <div className="flex justify-between text-gray-500 mt-1">
+        <span>Surcharge/Cess</span>
+        <span className="font-medium text-gray-900">${formatCurrency(row.surcharge_cess ?? 0)}</span>
+      </div>
+      <div className="flex justify-between text-gray-500 mt-1">
+        <span>Tax due</span>
+        <span className="font-semibold text-gray-900">
+          ${formatCurrency(computeTaxDue(row))}
+        </span>
       </div>
     </li>
   );

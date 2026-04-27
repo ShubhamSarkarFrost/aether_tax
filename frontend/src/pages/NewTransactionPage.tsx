@@ -27,6 +27,8 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'SGD'];
 interface FormData {
   transaction_type: string;
   amount: string;
+  tax_credits_rebates: string;
+  surcharge_cess: string;
   currency: string;
   originating_country: string;
   destination_country: string;
@@ -37,6 +39,8 @@ interface FormData {
 interface FormErrors {
   transaction_type?: string;
   amount?: string;
+  tax_credits_rebates?: string;
+  surcharge_cess?: string;
   currency?: string;
   originating_country?: string;
   destination_country?: string;
@@ -45,6 +49,8 @@ interface FormErrors {
 const DEFAULT_FORM: FormData = {
   transaction_type: '',
   amount: '',
+  tax_credits_rebates: '0',
+  surcharge_cess: '0',
   currency: 'USD',
   originating_country: '',
   destination_country: '',
@@ -64,11 +70,20 @@ export default function NewTransactionPage() {
   const [exposure, setExposure] = useState<TaxExposure | null>(null);
   const [orchestration, setOrchestration] = useState<TaxOrchestrationResult | null>(null);
   const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
+  const parsedAmount = form.amount === '' ? null : Number(form.amount);
+  const hasAmount = parsedAmount !== null && Number.isFinite(parsedAmount) && parsedAmount >= 0;
+  const showHighAmountHint = hasAmount && parsedAmount >= 1_000_000;
 
   function validate(): boolean {
     const errs: FormErrors = {};
     if (!form.transaction_type) errs.transaction_type = 'Transaction type is required';
     if (form.amount === '' || Number(form.amount) < 0) errs.amount = 'Amount must be 0 or greater';
+    if (form.tax_credits_rebates === '' || Number(form.tax_credits_rebates) < 0) {
+      errs.tax_credits_rebates = 'Tax credits/rebates must be 0 or greater';
+    }
+    if (form.surcharge_cess === '' || Number(form.surcharge_cess) < 0) {
+      errs.surcharge_cess = 'Surcharge/cess must be 0 or greater';
+    }
     if (!form.currency) errs.currency = 'Currency is required';
     if (!form.originating_country) errs.originating_country = 'Originating country is required';
     if (!form.destination_country) errs.destination_country = 'Destination country is required';
@@ -100,6 +115,8 @@ export default function NewTransactionPage() {
       const tx = await createTransaction({
         transaction_type: form.transaction_type,
         amount: Number(form.amount),
+        tax_credits_rebates: Number(form.tax_credits_rebates),
+        surcharge_cess: Number(form.surcharge_cess),
         currency: form.currency,
         originating_country: form.originating_country,
         destination_country: form.destination_country,
@@ -176,6 +193,24 @@ export default function NewTransactionPage() {
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
                   className={inputClass}
                 />
+                {hasAmount && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    You entered:{' '}
+                    <span className="font-semibold text-gray-900">
+                      {new Intl.NumberFormat(undefined, {
+                        style: 'currency',
+                        currency: form.currency,
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }).format(parsedAmount)}
+                    </span>
+                  </p>
+                )}
+                {showHighAmountHint && (
+                  <p className="text-xs text-amber-700 mt-1">
+                    Large amount detected. Please confirm the number of zeros before submitting.
+                  </p>
+                )}
                 {errors.amount && <p className={errorClass}>{errors.amount}</p>}
               </div>
 
@@ -193,6 +228,35 @@ export default function NewTransactionPage() {
                   ))}
                 </select>
                 {errors.currency && <p className={errorClass}>{errors.currency}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Tax Credits/Rebates</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={form.tax_credits_rebates}
+                  onChange={(e) => setForm({ ...form, tax_credits_rebates: e.target.value })}
+                  className={inputClass}
+                />
+                {errors.tax_credits_rebates && <p className={errorClass}>{errors.tax_credits_rebates}</p>}
+              </div>
+              <div>
+                <label className={labelClass}>Surcharge/Cess</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={form.surcharge_cess}
+                  onChange={(e) => setForm({ ...form, surcharge_cess: e.target.value })}
+                  className={inputClass}
+                />
+                {errors.surcharge_cess && <p className={errorClass}>{errors.surcharge_cess}</p>}
               </div>
             </div>
 

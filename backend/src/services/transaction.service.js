@@ -14,6 +14,8 @@ async function createTransaction(input, orgId) {
     source_system,
     transaction_type,
     amount,
+    tax_credits_rebates,
+    surcharge_cess,
     currency,
     originating_country,
     destination_country,
@@ -24,6 +26,12 @@ async function createTransaction(input, orgId) {
 
   if (!transaction_type) throw createServiceError("transaction_type is required", 400);
   if (amount === undefined || amount === null || amount < 0) throw createServiceError("amount must be >= 0", 400);
+  if (tax_credits_rebates !== undefined && (Number.isNaN(Number(tax_credits_rebates)) || Number(tax_credits_rebates) < 0)) {
+    throw createServiceError("tax_credits_rebates must be >= 0", 400);
+  }
+  if (surcharge_cess !== undefined && (Number.isNaN(Number(surcharge_cess)) || Number(surcharge_cess) < 0)) {
+    throw createServiceError("surcharge_cess must be >= 0", 400);
+  }
   if (!currency) throw createServiceError("currency is required", 400);
   if (!originating_country || !validateCountryCode(originating_country)) {
     throw createServiceError("originating_country must be a valid 2-char ISO code", 400);
@@ -37,6 +45,8 @@ async function createTransaction(input, orgId) {
     org_id: orgId,
     transaction_type,
     amount,
+    tax_credits_rebates: tax_credits_rebates ? Number(tax_credits_rebates) : 0,
+    surcharge_cess: surcharge_cess ? Number(surcharge_cess) : 0,
     currency: currency || "USD",
     originating_country: originating_country.toUpperCase(),
     destination_country: destination_country.toUpperCase(),

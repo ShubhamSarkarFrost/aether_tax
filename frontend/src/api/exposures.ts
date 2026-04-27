@@ -10,6 +10,9 @@ export interface TaxExposure {
   tax_type: string;
   taxable_amount: number;
   tax_rate: number;
+  gross_tax?: number;
+  tax_credits_rebates?: number;
+  surcharge_cess?: number;
   tax_due: number;
   confidence_score: number;
   calculated_at: string;

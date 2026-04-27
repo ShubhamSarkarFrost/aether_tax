@@ -10,6 +10,8 @@ const transactionSchema = new mongoose.Schema(
       required: true,
     },
     amount: { type: Number, required: true, min: 0 },
+    tax_credits_rebates: { type: Number, default: 0, min: 0 },
+    surcharge_cess: { type: Number, default: 0, min: 0 },
     currency: { type: String, required: true, default: "USD" },
     originating_country: { type: String, required: true, minlength: 2, maxlength: 2 },
     destination_country: { type: String, required: true, minlength: 2, maxlength: 2 },

@@ -14,20 +14,6 @@ interface Props {
   onRetry: () => void;
 }
 
-function ConfidenceBadge({ score }: { score: number }) {
-  const cls =
-    score >= 0.8
-      ? 'bg-green-100 text-green-700'
-      : score >= 0.5
-      ? 'bg-yellow-100 text-yellow-700'
-      : 'bg-red-100 text-red-700';
-  return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
-      {(score * 100).toFixed(0)}%
-    </span>
-  );
-}
-
 export default function ExposureResultModal({
   isOpen,
   onClose,
@@ -38,6 +24,11 @@ export default function ExposureResultModal({
   onRetry,
 }: Props) {
   if (!isOpen) return null;
+
+  const fallbackTaxDue =
+    exposure
+      ? exposure.taxable_amount * exposure.tax_rate - (exposure.tax_credits_rebates ?? 0) + (exposure.surcharge_cess ?? 0)
+      : 0;
 
   return (
     <div
@@ -105,34 +96,47 @@ export default function ExposureResultModal({
               <span className="font-medium text-gray-900">{exposure.jurisdiction_id}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Tax Type</span>
-              <span className="font-medium text-gray-900">{exposure.tax_type}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Taxable Amount</span>
+              <span className="text-gray-500">Principal amount</span>
               <span className="font-medium text-gray-900">
-                ${exposure.taxable_amount.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Tax Rate</span>
-              <span className="font-medium text-gray-900">
-                {(exposure.tax_rate * 100).toFixed(2)}%
-              </span>
-            </div>
-            <div className="flex justify-between text-sm border-t pt-3">
-              <span className="font-semibold text-gray-700">Tax Due</span>
-              <span className="text-xl font-bold text-gray-900">
-                $
-                {exposure.tax_due.toLocaleString(undefined, {
+                ${exposure.taxable_amount.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </span>
             </div>
-            <div className="flex justify-between text-sm items-center">
-              <span className="text-gray-500">Confidence Score</span>
-              <ConfidenceBadge score={exposure.confidence_score} />
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Tax</span>
+              <span className="font-medium text-gray-900">
+                {exposure.tax_type} ({(exposure.tax_rate * 100).toFixed(2)}%)
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Credits/Rebates</span>
+              <span className="font-medium text-gray-900">
+                ${(exposure.tax_credits_rebates ?? 0).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Surcharge/Cess</span>
+              <span className="font-medium text-gray-900">
+                ${(exposure.surcharge_cess ?? 0).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm border-t pt-3">
+              <span className="font-semibold text-gray-700">Tax due</span>
+              <span className="text-xl font-bold text-gray-900">
+                $
+                {fallbackTaxDue.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
             </div>
             <button
               onClick={onClose}

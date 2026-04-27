@@ -120,7 +120,7 @@ describe("computeLineItem", () => {
     expect(line.taxable_amount).toBe(100);
     expect(line.tax_rate).toBe(0.2);
     expect(line.tax_due).toBe(20);
-    expect(line.calculation_basis).toContain("rate=0.2");
+    expect(line.calculation_basis).toContain("gross_tax=100*0.2");
     expect(line.calculation_basis).toContain("basis=gross");
     expect(line.confidence_score).toBe(0.9);
   });
@@ -128,7 +128,19 @@ describe("computeLineItem", () => {
   it("uses default basis phrasing when rule_logic is missing", () => {
     const rule = baseRule({ rule_logic: undefined, standard_rate: 0.1 });
     const line = computeLineItem(tx, jurisdiction, rule, asOf);
-    expect(line.calculation_basis).toContain("tax_due = taxable_amount * tax_rate");
+    expect(line.calculation_basis).toContain(
+      "tax_due = (taxable_amount * tax_rate) - tax_credits_rebates + surcharge_cess"
+    );
+  });
+
+  it("applies credits/rebates and surcharge/cess to tax_due", () => {
+    const txWithAdjustments = { ...tx, tax_credits_rebates: 5, surcharge_cess: 2 };
+    const rule = baseRule({ standard_rate: 0.2, rule_logic: undefined });
+    const line = computeLineItem(txWithAdjustments, jurisdiction, rule, asOf);
+    expect(line.gross_tax).toBe(20);
+    expect(line.tax_credits_rebates).toBe(5);
+    expect(line.surcharge_cess).toBe(2);
+    expect(line.tax_due).toBe(17);
   });
 
   it("lowers confidence when rule does not apply to transaction type", () => {

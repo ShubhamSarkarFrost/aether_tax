@@ -62,7 +62,7 @@ describe("NewTransactionPage (/transactions/new form)", () => {
 
     const combos = screen.getAllByRole("combobox");
     await user.selectOptions(combos[0], "sale");
-    await user.type(screen.getByPlaceholderText("0.00"), "100");
+    await user.type(screen.getAllByPlaceholderText("0.00")[0]!, "100");
     await user.selectOptions(combos[2], "US");
     await user.selectOptions(combos[3], "DE");
     await user.click(screen.getByRole("button", { name: /submit transaction/i }));
@@ -72,5 +72,21 @@ describe("NewTransactionPage (/transactions/new form)", () => {
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
+  });
+
+  it("shows formatted amount preview and high-value hint", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <NewTransactionPage />
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getAllByPlaceholderText("0.00")[0]!, "3420000");
+
+    expect(await screen.findByText(/You entered:/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Large amount detected\. Please confirm the number of zeros before submitting\./i)
+    ).toBeInTheDocument();
   });
 });

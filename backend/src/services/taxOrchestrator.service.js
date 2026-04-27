@@ -46,10 +46,13 @@ function ruleAppliesToTransaction(transaction, rule) {
 function computeLineItem(transaction, jurisdiction, rule, asOf) {
   const taxable_amount = transaction.amount;
   const tax_rate = rule.standard_rate;
-  const tax_due = taxable_amount * tax_rate;
+  const tax_credits_rebates = transaction.tax_credits_rebates || 0;
+  const surcharge_cess = transaction.surcharge_cess || 0;
+  const gross_tax = taxable_amount * tax_rate;
+  const tax_due = gross_tax - tax_credits_rebates + surcharge_cess;
   const basis = rule.rule_logic
-    ? `rate=${tax_rate}; basis=${rule.rule_logic}; asOf=${asOf.toISOString()}`
-    : `tax_due = taxable_amount * tax_rate; asOf=${asOf.toISOString()}`;
+    ? `gross_tax=${taxable_amount}*${tax_rate}; tax_due=(gross_tax-${tax_credits_rebates})+${surcharge_cess}; basis=${rule.rule_logic}; asOf=${asOf.toISOString()}`
+    : `tax_due = (taxable_amount * tax_rate) - tax_credits_rebates + surcharge_cess; asOf=${asOf.toISOString()}`;
 
   return {
     transaction_id: transaction._id,
@@ -59,6 +62,9 @@ function computeLineItem(transaction, jurisdiction, rule, asOf) {
     tax_type: rule.tax_category,
     taxable_amount,
     tax_rate,
+    gross_tax,
+    tax_credits_rebates,
+    surcharge_cess,
     tax_due,
     calculation_basis: basis,
     confidence_score: ruleAppliesToTransaction(transaction, rule) ? 0.9 : 0.55,

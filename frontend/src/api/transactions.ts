@@ -6,6 +6,8 @@ export interface Transaction {
   org_id: string;
   transaction_type: 'sale' | 'purchase' | 'service' | 'royalty' | 'dividend' | 'interest';
   amount: number;
+  tax_credits_rebates: number;
+  surcharge_cess: number;
   currency: string;
   originating_country: string;
   destination_country: string;
@@ -22,6 +24,8 @@ export interface TransactionPayload {
   org_id?: string;
   transaction_type: string;
   amount: number;
+  tax_credits_rebates?: number;
+  surcharge_cess?: number;
   currency: string;
   originating_country: string;
   destination_country: string;

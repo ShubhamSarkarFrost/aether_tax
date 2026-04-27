@@ -51,6 +51,20 @@ describe("createTransaction", () => {
     });
   });
 
+  it("rejects when tax_credits_rebates is negative", async () => {
+    await expect(
+      createTransaction({ ...baseInput, tax_credits_rebates: -1 }, "org-1")
+    ).rejects.toMatchObject({
+      message: "tax_credits_rebates must be >= 0",
+    });
+  });
+
+  it("rejects when surcharge_cess is negative", async () => {
+    await expect(createTransaction({ ...baseInput, surcharge_cess: -1 }, "org-1")).rejects.toMatchObject({
+      message: "surcharge_cess must be >= 0",
+    });
+  });
+
   it("rejects invalid originating_country", async () => {
     await expect(
       createTransaction({ ...baseInput, originating_country: "USA" }, "org-1")
@@ -70,6 +84,8 @@ describe("createTransaction", () => {
         org_id: "org-1",
         transaction_type: "sale",
         amount: 100,
+        tax_credits_rebates: 0,
+        surcharge_cess: 0,
         currency: "USD",
         originating_country: "US",
         destination_country: "DE",
