@@ -5,7 +5,12 @@ const jurisdictionRuleSchema = new mongoose.Schema(
     jurisdiction_id: { type: mongoose.Schema.Types.ObjectId, ref: "Jurisdiction", required: true },
     rule_type: { type: String, required: true, trim: true },
     tax_category: { type: String, required: true, trim: true },
-    standard_rate: { type: Number, required: true, min: 0 },
+    standard_rate: {
+      type: Number,
+      required: true,
+      min: [0, "standard_rate must be between 0 and 1 (decimal format, e.g. 0.18)"],
+      max: [1, "standard_rate must be between 0 and 1 (decimal format, e.g. 0.18)"],
+    },
     rule_logic: { type: String, trim: true },
     valid_from: { type: Date, required: true },
     valid_to: { type: Date },
